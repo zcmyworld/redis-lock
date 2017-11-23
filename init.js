@@ -32,7 +32,7 @@ async function init() {
       price: 60
     }, {
       name: 'goodsc',
-      price: 110
+      price: 80
     }];
 
   //初始化用户信息

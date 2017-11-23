@@ -12,17 +12,6 @@ let redisClient = redis.createClient({
   host: '127.0.0.1'
 });
 
-async function acquire_lock() {
-  let lockid = uuidv1();
-  let start_time = new Date().getTime();
-  while (new Date().getTime() - start_time < ACQUIRE_LOCK_OVER_TIME_IN_MILLISECOND) {
-    let isLock = await redisClient.setnxAsync('lock', lockid);
-    if (isLock == 1) {
-      return lockid;
-    }
-  }
-}
-
 /**
  * @params seller　销售者
  * @params buyer　购买者
