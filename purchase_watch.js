@@ -82,18 +82,24 @@ function sleep(sleepTime) {
 }
 
 co(async function () {
+  // await getPurchaseInfo();
+  // return;
   purchase('u1', 'u2', 'goodsa');
   purchase('u1', 'u3', 'goodsb');
   purchase('u1', 'u4', 'goodsc');
   purchase('u1', 'u5', 'goodsa');
-  // purchase('u1', 'u6', 'goodsa');
-  // purchase('u1', 'u7', 'goodsa');
-  // purchase('u1', 'u8', 'goodsa');
-  // purchase('u1', 'u9', 'goodsa');
-  // purchase('u1', 'u10', 'goodsa');
+  purchase('u1', 'u6', 'goodsa');
+  purchase('u1', 'u7', 'goodsa');
+  purchase('u1', 'u8', 'goodsa');
+  purchase('u1', 'u9', 'goodsa');
+  purchase('u1', 'u10', 'goodsa');
 })
 
 async function getPurchaseInfo() {
+  let redisClient = redis.createClient({
+    port: '7000',
+    host: '127.0.0.1'
+  });
   //查看每个人的余额和背包
   for (let i = 1; i <= 10; i++) {
     let uname = `u${i}`;
