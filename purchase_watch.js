@@ -36,6 +36,7 @@ async function purchase(seller, buyer, item) {
     if (!price) {
       console.log('商品已被买走')
       await redisClient.unwatchAsync();
+      redisClient.end(true);
       return false;
     }
 
@@ -46,6 +47,7 @@ async function purchase(seller, buyer, item) {
     if (funds < price) {
       console.log('购买者资金不足')
       await redisClient.unwatchAsync();
+      redisClient.end(true);
       return false;
     }
 
@@ -69,6 +71,7 @@ async function purchase(seller, buyer, item) {
       continue;
     }
     console.log(`用户${buyer}购买${item}成功`);
+    redisClient.end(true);
 
     return true;
   }
@@ -80,7 +83,8 @@ async function purchase(seller, buyer, item) {
 function sleep(sleepTime) {
   for (var start = +new Date; +new Date - start <= sleepTime;) { }
 }
-
+// await getPurchaseInfo();
+// return;
 co(async function () {
   // await getPurchaseInfo();
   // return;
