@@ -16,17 +16,24 @@ async function getPurchaseInfo() {
     port: '7000',
     host: '127.0.0.1'
   });
-  //查看每个人的余额和背包
+  //查看买家的余额和背包
   for (let i = 1; i <= 10; i++) {
     let uname = `u${i}`;
     console.log(`用户名: ${uname}`);
     let funds = await redisClient.hgetAsync(`uinfo:${uname}`, 'funds');
-    console.log(funds);
+    console.log('资金：' + funds);
     let pack = await redisClient.zrangeAsync(`pack:${uname}`, 0, -1);
     console.log(pack);
   }
+  //查看卖家的余额和背包
+  let uname = `seller`;
+  console.log(`用户名: ${uname}`);
+  let funds = await redisClient.hgetAsync(`uinfo:${uname}`, 'funds');
+  console.log('资金：' + funds);
+  let pack = await redisClient.zrangeAsync(`pack:${uname}`, 0, -1);
+  console.log(pack.length);
 }
 
-co(async function() {
-  await getPurchaseInfo(); 
+co(async function () {
+  await getPurchaseInfo();
 })
