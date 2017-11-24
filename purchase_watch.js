@@ -32,7 +32,7 @@ async function purchase(seller, buyer, item, start) {
     //获得商品价格
     let price = await redisClient.zscoreAsync(`pack:${seller}`, item);
     price = Number(price);
-    //商品不存在于u1的背包
+    //商品不存在于seller的背包
     if (!price) {
       console.log('商品已被买走')
       redisClient.end(true);
