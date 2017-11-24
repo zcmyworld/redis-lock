@@ -53,17 +53,16 @@ async function purchase(seller, buyer, item) {
 }
 
 co(async function () {
-  await getPurchaseInfo();
-  return;
-  purchase('u1', 'u2', 'goodsa');
-  purchase('u1', 'u3', 'goodsa');
-  purchase('u1', 'u4', 'goodsa');
-  purchase('u1', 'u5', 'goodsa');
-  purchase('u1', 'u6', 'goodsa');
-  purchase('u1', 'u7', 'goodsa');
-  purchase('u1', 'u8', 'goodsa');
-  purchase('u1', 'u9', 'goodsa');
-  purchase('u1', 'u10', 'goodsa');
+  purchase('seller', 'u1', 'item1');
+  purchase('seller', 'u2', 'item1');
+  purchase('seller', 'u3', 'item1');
+  purchase('seller', 'u4', 'item1');
+  purchase('seller', 'u5', 'item1');
+  purchase('seller', 'u6', 'item1');
+  purchase('seller', 'u7', 'item1');
+  purchase('seller', 'u8', 'item1');
+  purchase('seller', 'u9', 'item1');
+  purchase('seller', 'u10', 'item1');
 })
 
 async function getPurchaseInfo() {
