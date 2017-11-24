@@ -16,10 +16,9 @@ let redisClient = redis.createClient({
 const itemsNum = 100;
 //生成购买者数量
 const usersNum = 10;
-
 async function init() {
   //初始化买家信息
-  for (let i = 1; i <= 10; i++) {
+  for (let i = 1; i <= usersNum; i++) {
     await redisClient.hmset(`uinfo:u${i}`, {
       name: `u${i}`,
       funds: 1000
