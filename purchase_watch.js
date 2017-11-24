@@ -35,7 +35,6 @@ async function purchase(seller, buyer, item, start) {
     //商品不存在于u1的背包
     if (!price) {
       console.log('商品已被买走')
-      await redisClient.unwatchAsync();
       redisClient.end(true);
       return false;
     }
@@ -46,7 +45,6 @@ async function purchase(seller, buyer, item, start) {
     //购买者金额不足，交易失败
     if (funds < price) {
       console.log('购买者资金不足')
-      await redisClient.unwatchAsync();
       redisClient.end(true);
       return false;
     }
