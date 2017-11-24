@@ -25,7 +25,7 @@ async function init() {
     });
   }
   //初始化卖家信息
-  await redisClient.hmset(`uinfo:u${i}`, {
+  await redisClient.hmset(`uinfo:seller`, {
     name: `seller`,
     funds: 0
   });
@@ -40,7 +40,8 @@ async function init() {
   //初始化背包信息
   
   for (let i in items) {
-    await redisClient.zaddAsync('pack:seller', items[i].price, items[i].name);
+    await redisClient.zaddAsync('pack:seller', 
+    items[i].price, items[i].name);
   }
 }
 
