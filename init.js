@@ -18,6 +18,18 @@ const itemsNum = 100;
 const usersNum = 10;
 
 async function init() {
+  //初始化买家信息
+  for (let i = 1; i <= 10; i++) {
+    await redisClient.hmset(`uinfo:u${i}`, {
+      name: `u${i}`,
+      funds: 1000
+    });
+  }
+  //初始化卖家信息
+  await redisClient.hmset(`uinfo:u${i}`, {
+    name: `seller`,
+    funds: 0
+  });
   let items = [];
   //初始化商品信息
   for (let i = 1; i <= itemsNum; i++) {
@@ -26,14 +38,8 @@ async function init() {
       price: 1
     })
   }
-  //初始化用户信息
-  for (let i = 1; i <= 10; i++) {
-    await redisClient.hmset(`uinfo:u${i}`, {
-      name: `u${i}`,
-      funds: 1000
-    });
-  }
   //初始化背包信息
+  
   for (let i in items) {
     await redisClient.zaddAsync('pack:seller', items[i].price, items[i].name);
   }
