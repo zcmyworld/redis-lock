@@ -12,42 +12,30 @@ let redisClient = redis.createClient({
   host: '127.0.0.1'
 });
 
-async function acquire_lock() {
-  let lockid = uuidv1();
-  let start_time = new Date().getTime();
-  while (new Date().getTime() - start_time < ACQUIRE_LOCK_OVER_TIME_IN_MILLISECOND) {
-    let isLock = await redisClient.setnxAsync('lock', lockid);
-    if (isLock == 1) {
-      return lockid;
-    }
-  }
-}
+//生成货物数量
+const itemsNum = 100;
+//生成购买者数量
+const usersNum = 10;
 
 async function init() {
-  let u1goodsnames = [{
-    name: 'goodsa',
-    price: 5
-  }, {
-      name: 'goodsb',
-      price: 60
-    }, {
-      name: 'goodsc',
-      price: 80
-    }];
-
+  let items = [];
+  //初始化商品信息
+  for (let i = 1; i <= itemsNum; i++) {
+    items.push({
+      name: `item${i}`,
+      price: 1
+    })
+  }
   //初始化用户信息
   for (let i = 1; i <= 10; i++) {
     await redisClient.hmset(`uinfo:u${i}`, {
       name: `u${i}`,
-      funds: 100
+      funds: 1000
     });
   }
-
-  //u1为销售者
   //初始化背包信息
-  let u1packkey = `pack:u1`;
-  for (let i in u1goodsnames) {
-    await redisClient.zaddAsync(u1packkey, u1goodsnames[i].price, u1goodsnames[i].name);
+  for (let i in items) {
+    await redisClient.zaddAsync('pack:seller', items[i].price, items[i].name);
   }
 }
 

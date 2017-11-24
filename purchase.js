@@ -53,6 +53,8 @@ async function purchase(seller, buyer, item) {
 }
 
 co(async function () {
+  await getPurchaseInfo();
+  return;
   purchase('u1', 'u2', 'goodsa');
   purchase('u1', 'u3', 'goodsa');
   purchase('u1', 'u4', 'goodsa');
