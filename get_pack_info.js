@@ -11,7 +11,7 @@ let redisClient = redis.createClient({
   port: '7000',
   host: '127.0.0.1'
 });
-async function getPurchaseInfo() {
+async function getpackinfo() {
   let redisClient = redis.createClient({
     port: '7000',
     host: '127.0.0.1'
@@ -35,5 +35,5 @@ async function getPurchaseInfo() {
 }
 
 co(async function () {
-  await getPurchaseInfo();
+  await getpackinfo();
 })

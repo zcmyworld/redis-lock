@@ -11,8 +11,8 @@ bluebird.promisifyAll(redis.Multi.prototype);
  * @params item　商品
  */
 async function purchase(seller, buyer, item) {
-
-  let end = new Date().getTime() + 100000000;
+  //定义重试时间
+  let end = new Date().getTime() + 5000;
   let redisClient = redis.createClient({
     port: '7000',
     host: '127.0.0.1'
@@ -56,7 +56,7 @@ async function purchase(seller, buyer, item) {
       return true;
     }
   } catch (e) {
-    console.lo(e)
+    console.log(e)
   } finally {
     redisClient.end(true);
   }
@@ -72,9 +72,19 @@ function RandomNumBoth(Min, Max) {
 }
 
 co(async function () {
-  let start = new Date().getTime();
-  for (let i = 1; i <= 10; i++) {
-    let buyer = `u${RandomNumBoth(2, 10)}`;
-    purchase('seller', buyer, `item${i}`, start);
-  }
+  // let start = new Date().getTime();
+  // for (let i = 1; i <= 10; i++) {
+  //   let buyer = `u${RandomNumBoth(2, 10)}`;
+  //   purchase('seller', buyer, `item${i}`, start);
+  // }
+  purchase('seller', 'u1', 'item1');
+  purchase('seller', 'u2', 'item1');
+  purchase('seller', 'u3', 'item1');
+  purchase('seller', 'u4', 'item1');
+  purchase('seller', 'u5', 'item1');
+  purchase('seller', 'u6', 'item1');
+  purchase('seller', 'u7', 'item1');
+  purchase('seller', 'u8', 'item1');
+  purchase('seller', 'u9', 'item1');
+  purchase('seller', 'u10', 'item1');
 })
