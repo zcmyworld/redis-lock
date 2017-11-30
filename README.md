@@ -1,6 +1,6 @@
 # 利用Redis事务实现乐观锁解决并发交易问题
 
-摘要：常见的交易逻辑中，并发地处理相同的数据（购买相同的商品）时，不谨慎的操作很容易导致数据操作。这里介绍如何利用Redis事务实现乐观锁来防止数据出错。
+摘要：常见的交易逻辑中，并发地处理相同的数据（购买相同的商品）时，不谨慎的操作很容易导致数据错误。这里介绍如何利用Redis事务实现乐观锁来防止数据出错。
 
 ## 生成实验数据
 
@@ -10,9 +10,11 @@
 
 <img src='https://github.com/zcmyworld/bcms/blob/master/static/1189FBBE-7203-4838-A6F5-EFE0B98F416D.png'>
 
- * 初始化生成100个商品，商品名称分别是 item1,item2,item3 ... item100，售价1
- * 初始化生成10个买家，用户名分别是 u1,u2,u3 .. u10，初始资金为1000
- * 初始化生成1个卖家，用户名位seller，初始资金为0
+ 初始化生成100个商品，商品名称分别是 item1,item2,item3 ... item100，售价为1
+ 
+ 初始化生成10个买家，用户名分别是 u1,u2,u3 .. u10，初始资金为1000
+ 
+ 初始化生成1个卖家，用户名为seller，初始资金为0
 
 
 		//生成货物数量
@@ -50,7 +52,7 @@
 
 ## 检测函数
 
-检测函数用户查询所有用户当前资金和背包情况
+检测函数用于查询所有用户当前资金和背包情况
 
 	async function getPurchaseInfo() {
 	  let redisClient = redis.createClient({
@@ -124,7 +126,7 @@
 
 ### 模拟并发购买商品
 
-Node.js模拟函数并发调用真的非常简单（Node.js是单线程的，利用其异步非阻塞的特性，能基本达到模拟的要求）。
+Node.js模拟函数并发调非常简单（Node.js是单线程的，利用其异步非阻塞的特性，能基本达到模拟的要求）。
 
 10个用户同时购买商品item1:
 
@@ -144,7 +146,7 @@ Node.js模拟函数并发调用真的非常简单（Node.js是单线程的，利
 
 调用上面提到的检测函数得到以下结果：
 
-<img src='https://github.com/zcmyworld/bcms/blob/master/static/2C8E659F4D592452036D062A44D81B2E.jpg'>
+<img src='https://github.com/zcmyworld/bcms/blob/master/static/2C8E659F4D592452036D062A44D81B2E.jpg'
 
 从结果可知，所有买家的背包都获得了商品item1，显然这个购买流程是有问题的。
 
@@ -152,7 +154,7 @@ Node.js模拟函数并发调用真的非常简单（Node.js是单线程的，利
 
 ### 实现原理
 
-Redis 提供 multi, discard, exec, watch,unwatch 命令来实现事务。watch命令用于在事务开始之前（multi）监听任意数量key，当执行exec命令时，如果被watch的key被其他客户端修改，那么这次事务会执行失败，exec命令返回nil：
+Redis 提供 multi, discard, exec, watch,unwatch 命令来实现事务。watch命令用于在事务（multi）开始之前监听任意数量key，当执行exec命令时，如果被watch的key被其他客户端修改，那么这次事务会执行失败，exec命令返回nil，设A和B两个客户端分别执行以下命令，
 
 |时间|客户端A|客户端B|
 |-----|-----|-----|
@@ -164,66 +166,49 @@ Redis 提供 multi, discard, exec, watch,unwatch 命令来实现事务。watch�
 
 如图，exec命令将返回nil，事务执行失败。
 
-注：watch监听任意数量key，如果key被当前客户端修改，将不会阻止程序执行，即如果多个进程共用一个Redis连接，那么他们修改同一数据时，watch不会生效。
+（注：watch监听任意数量key，如果key被当前客户端修改，将不会阻止程序执行，即如果多个进程共用一个Redis连接，那么他们修改同一数据时，watch不会生效。）
+
+利用watch的特性，对卖家的背包和买家的资金进行监视，在购买流程执行过程中，如果卖家的背包发生变动（商品被买走，商品被卖家丢弃等情况）或者买家资金发生变动（买家同时在进行其他交易等情况），事务都不会执行成功，此时程序将进行重试，其中最大重试次数为5秒，这样做能避免同一时间多个事务执行成功而导致错误发生，实现代码如下：
 
 	async function purchase(seller, buyer, item) {
-	  let end = new Date().getTime() + 100000000;
-	  let redisClient = redis.createClient({
-	    port: '7000',
-	    host: '127.0.0.1'
-	  });
+	  let end = new Date().getTime() + 5000;
+	  let redisClient = redis.createClient();
 	  try {
 	    while (new Date().getTime() < end) {
-	      //观察销售者的背包是否有变动
+	      //观察销售者的背包是否有变动,观察购买者资金是否有变动
 	      await redisClient.watchAsync(`pack:${seller}`);
-	      //观察购买者资金是否有变动
 	      await redisClient.watchAsync(`uinfo:${buyer}`);
-	      //获得商品价格
 	      let price = await redisClient.zscoreAsync(`pack:${seller}`, item);
 	      price = Number(price);
-	      //商品不存在于seller的背包
 	      if (!price) {
-	        console.log('商品已被买走')
-	        return false;
+	        return false;//商品不存在于seller的背包
 	      }
 	      //获取购买者资产
 	      let funds = await redisClient.hgetAsync(`uinfo:${buyer}`, 'funds');
 	      funds = Number(funds);
-	      //购买者金额不足，交易失败
-	      if (funds < price) {
-	        console.log('购买者资金不足')
-	        return false;
-	      }
+	      if (funds < price) return false;//购买者金额不足，交易失败
 	      multi = redisClient.multi();
-	      //购买者扣除资产
+	      //购买者扣除资产,销售者增加资,购买者背包增加商品,购买者背包移除商品
 	      multi.hincrby(`uinfo:${buyer}`, 'funds', -price);
-	      //销售者增加资产
 	      multi.hincrby(`uinfo:${seller}`, 'funds', price);
-	      //购买者背包增加商品
 	      multi.zadd(`pack:${buyer}`, price, item);
-	      //购买者背包移除商品
 	      multi.zrem(`pack:${seller}`, item);
 	      let rs = await multi.execAsync();
-	      if (!rs) {
-	        continue;
-	      }
-	      console.log(`用户${buyer}购买${item}成功`);
-	      return true;
+	      if (!rs) continue;
+	      return true;//购买成功
 	    }
 	  } catch (e) {
-	    console.lo(e)
 	  } finally {
 	    redisClient.end(true);
 	  }
-	  console.log('购买超时')
-	  return false;
+	  return false;//购买超时
 	}
 
-为了保证watch生效，每次购买都建立新的Redis连接。如while循环所示，watch对卖家的背包和买家的资金进行监听，如果卖家背包或者买家资金被改变，Redis执行exec命令会获得返回值null，继而进行重试，直到购买完毕或者超时。
+为了保证watch生效，每次购买都建立了新的Redis连接。如while循环所示，watch对卖家的背包和买家的资金进行监听，如果卖家背包或者买家资金被改变，Redis执行exec命令会获得返回值null，继而进行重试，直到购买完毕或者超时。
 
 ## 断言函数
 
-肉眼观察Redis结果不太合适，编写断言函数来提高准确度和断言效率。继续使用上面的模拟并发函数执行购买，定义一个函数，判断最终购买结果是否正常，断言标准如何下：
+肉眼观察Redis结果并不合适，于是编写断言函数来提高准确度和断言效率，断言标准如下：
 
 * 卖家只卖出了item1，背包数量为99，资金变化为1
 * 只有其中一个用户资金变化为999，其他用户依然是1000
