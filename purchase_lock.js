@@ -9,7 +9,6 @@ bluebird.promisifyAll(redis.Multi.prototype);
 
 //构建Redis连接
 let redisClient = redis.createClient({
-  port: '7000',
   host: '127.0.0.1'
 });
 
@@ -17,21 +16,32 @@ let redisClient = redis.createClient({
 const ACQUIRE_LOCK_OVER_TIME_IN_MILLISECOND = 5000;
 
 async function acquire_lock() {
-  let lockid = uuidv1();
-  let start_time = new Date().getTime();
-  while (new Date().getTime() - start_time < ACQUIRE_LOCK_OVER_TIME_IN_MILLISECOND) {
-    let isLock = await redisClient.setnxAsync('lock', lockid);
-    if (isLock == 1) {
-      return lockid;
+  //设置超时时间为5秒
+  let ACQUIRE_LOCK_OVER_TIME = 5000;
+  let LOCK_EXPIRE_TIME = 5000;
+  let end = new Date().getTime() + ACQUIRE_LOCK_OVER_TIME;
+  while (new Date().getTime() < end) {
+    let isLock = await redisClient.setAsync('lock','true', 'nx', 'px', LOCK_EXPIRE_TIME);
+    if (isLock == 'OK') {
+      return true;
     }
   }
+  return false;
 }
-
-async function release_lock() {
-  await redisClient.delAsync('lock');
+async function release_lock(lock_id) {
+  while (true) {
+    await redisClient.watch('lock');
+    let _lock_id = await redisClient.getAsync('lock');
+    multi = redisClient.multi();
+    if (lock_id == _lock_id) {
+      await multi.del('lock');
+      let rs = await multi.execAsync();
+      if (!rs) continue;
+      return true;
+    }
+  }
+  return false;
 }
-
-
 
 /**
  * @params seller　销售者
@@ -82,37 +92,22 @@ async function purchase(seller, buyer, item) {
   } catch (e) {
 
   } finally {
-    release_lock();
+    release_lock(lociid);
   }
 }
 
-function sleep(sleepTime) {
-  for (var start = +new Date; +new Date - start <= sleepTime;) { }
-}
 
-
-co(async function () {
+co(async function() {
   // await getPurchaseInfo();
   // return;
-  purchase('u1', 'u2', 'goodsa');
-  purchase('u1', 'u3', 'goodsb');
-  purchase('u1', 'u4', 'goodsc');
-  purchase('u1', 'u5', 'goodsa');
-  purchase('u1', 'u6', 'goodsa');
-  purchase('u1', 'u7', 'goodsa');
-  purchase('u1', 'u8', 'goodsa');
-  purchase('u1', 'u9', 'goodsa');
-  purchase('u1', 'u10', 'goodsa');
+  purchase('seller', 'u1', 'item1');
+  purchase('seller', 'u2', 'item1');
+  purchase('seller', 'u3', 'item1');
+  purchase('seller', 'u4', 'item1');
+  purchase('seller', 'u5', 'item1');
+  purchase('seller', 'u6', 'item1');
+  purchase('seller', 'u7', 'item1');
+  purchase('seller', 'u8', 'item1');
+  purchase('seller', 'u9', 'item1');
+  purchase('seller', 'u10', 'item1');
 })
-
-async function getPurchaseInfo() {
-  //查看每个人的余额和背包
-  for (let i = 1; i <= 10; i++) {
-    let uname = `u${i}`;
-    console.log(`用户名: ${uname}`);
-    let funds = await redisClient.hgetAsync(`uinfo:${uname}`, 'funds');
-    console.log(funds);
-    let pack = await redisClient.zrangeAsync(`pack:${uname}`, 0, -1);
-    console.log(pack);
-  }
-}
